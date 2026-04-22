@@ -161,8 +161,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built as part of the BSB AI Quick Wins Initiative
-- Developed by Golden Suntec Solutions, Inc.
+- Developed by japsmalata
 
 ## 📞 Support
 
@@ -178,4 +177,4 @@ For issues, questions, or feedback:
 
 ---
 
-**Made with ❤️ by the BSB AI Quick Wins team**
+**Made with ❤️ by japsmalata**
