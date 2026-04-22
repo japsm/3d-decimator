@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Decimator - Batch Processing</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        h1 { color: #2d3748; font-size: 32px; margin-bottom: 10px; text-align: center; }
+        .subtitle { color: #718096; text-align: center; margin-bottom: 30px; font-size: 14px; }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover { color: #667eea; }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 25px;
+            background: #f7fafc;
+        }
+        .upload-area:hover { border-color: #667eea; background: #edf2f7; }
+        .upload-area.dragover { border-color: #667eea; background: #e6f2ff; }
+        .upload-icon { font-size: 48px; margin-bottom: 15px; color: #667eea; }
+        .upload-text { color: #4a5568; font-size: 16px; margin-bottom: 5px; }
+        .upload-hint { color: #a0aec0; font-size: 13px; }
+        #fileInput { display: none; }
+        
+        .file-list {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .file-item:last-child { margin-bottom: 0; }
+        .file-name { font-weight: 600; color: #2d3748; }
+        .file-size { color: #718096; font-size: 13px; }
+        .remove-file {
+            background: #fc8181;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .section { margin-bottom: 25px; }
+        .section-title {
+            color: #2d3748;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .reduction-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .reduction-option { position: relative; }
+        .reduction-option input[type="radio"] { position: absolute; opacity: 0; }
+        .reduction-option label {
+            display: block;
+            padding: 15px 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        .reduction-option input[type="radio"]:checked + label {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .reduction-option label:hover { border-color: #667eea; }
+        .reduction-label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 3px; }
+        .reduction-value { font-size: 12px; opacity: 0.8; }
+        
+        .format-checkboxes { display: grid; gap: 10px; }
+        .format-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        .format-checkbox:hover { border-color: #667eea; background: #f7fafc; }
+        .format-checkbox.selected { border-color: #667eea; background: #edf5ff; }
+        .format-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+        .format-label { font-weight: 600; color: #2d3748; font-size: 14px; flex: 1; }
+        .format-description { color: #718096; font-size: 12px; margin-left: 32px; }
+        
+        .process-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .process-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
+        .process-btn:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
+        
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .processing-text { color: #4a5568; font-size: 14px; }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .results {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        .results h3 { color: #2f855a; margin-bottom: 15px; }
+        .result-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .result-filename { font-weight: 600; color: #2d3748; margin-bottom: 5px; }
+        .result-stats { color: #718096; font-size: 13px; }
+        
+        .browser-grid {
+            display: grid;
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .browser-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .browser-info { flex: 1; }
+        .browser-filename { font-weight: 600; color: #2d3748; margin-bottom: 4px; }
+        .browser-meta { color: #718096; font-size: 12px; }
+        .download-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .download-btn:hover { background: #5a67d8; }
+        
+        .history-grid {
+            display: grid;
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .history-time { color: #718096; font-size: 12px; margin-bottom: 8px; }
+        .history-file { font-weight: 600; color: #2d3748; margin-bottom: 4px; }
+        .history-details { color: #718096; font-size: 13px; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+        .empty-icon { font-size: 64px; margin-bottom: 15px; }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #a0aec0;
+            font-size: 12px;
+        }
+        
+        .format-count { font-size: 12px; color: #667eea; font-weight: 600; margin-top: 8px; }
+        
+        .download-all-btn {
+            width: 100%;
+            padding: 12px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .download-all-btn:hover { background: #38a169; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 3D Decimator</h1>
+        <div class="subtitle">Batch Multi-Format Mesh Reduction Tool</div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="upload">Upload & Process</button>
+            <button class="tab" data-tab="browser">File Browser</button>
+            <button class="tab" data-tab="history">History</button>
+        </div>
+
+        <!-- Upload Tab -->
+        <div class="tab-content active" id="upload-tab">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click or drag 3D files here</div>
+                <div class="upload-hint">Supports STL, OBJ, 3MF | Up to 20 files, 100 MB each</div>
+                <input type="file" id="fileInput" accept=".stl,.obj,.3mf" multiple>
+            </div>
+
+            <div class="file-list" id="fileList" style="display: none;"></div>
+
+            <div class="section">
+                <div class="section-title">Reduction Level</div>
+                <div class="reduction-options">
+                    <div class="reduction-option">
+                        <input type="radio" name="reduction" id="light" value="light">
+                        <label for="light">
+                            <span class="reduction-label">Light</span>
+                            <span class="reduction-value">25%</span>
+                        </label>
+                    </div>
+                    <div class="reduction-option">
+                        <input type="radio" name="reduction" id="medium" value="medium" checked>
+                        <label for="medium">
+                            <span class="reduction-label">Medium</span>
+                            <span class="reduction-value">50%</span>
+                        </label>
+                    </div>
+                    <div class="reduction-option">
+                        <input type="radio" name="reduction" id="heavy" value="heavy">
+                        <label for="heavy">
+                            <span class="reduction-label">Heavy</span>
+                            <span class="reduction-value">75%</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Output Formats</div>
+                <div class="format-checkboxes">
+                    <label class="format-checkbox selected" id="stl-checkbox">
+                        <input type="checkbox" name="format" value="stl" checked>
+                        <span class="format-label">STL</span>
+                    </label>
+                    <div class="format-description">Stereolithography - Most common 3D printing format</div>
+
+                    <label class="format-checkbox selected" id="obj-checkbox">
+                        <input type="checkbox" name="format" value="obj" checked>
+                        <span class="format-label">OBJ</span>
+                    </label>
+                    <div class="format-description">Wavefront Object - Universal 3D format</div>
+
+                    <label class="format-checkbox selected" id="3mf-checkbox">
+                        <input type="checkbox" name="format" value="3mf" checked>
+                        <span class="format-label">3MF</span>
+                    </label>
+                    <div class="format-description">3D Manufacturing Format - Modern with color support</div>
+                </div>
+                <div class="format-count" id="formatCount">3 formats selected</div>
+            </div>
+
+            <button class="process-btn" id="processBtn" disabled>Select files to continue</button>
+
+            <div class="processing" id="processing">
+                <div class="spinner"></div>
+                <div class="processing-text">Processing your 3D models...</div>
+            </div>
+
+            <div class="error" id="error"></div>
+            <div class="results" id="results"></div>
+        </div>
+
+        <!-- File Browser Tab -->
+        <div class="tab-content" id="browser-tab">
+            <button class="download-all-btn" id="downloadAllBtn">📦 Download All Files as ZIP</button>
+            <div class="browser-grid" id="browserGrid"></div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content" id="history-tab">
+            <div class="history-grid" id="historyGrid"></div>
+        </div>
+
+        <div class="footer">Developed under BSB AI Quick Wins Initiative</div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                
+                if (tab.dataset.tab === 'browser') loadFileBrowser();
+                if (tab.dataset.tab === 'history') loadHistory();
+            });
+        });
+
+        // Upload area
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const processBtn = document.getElementById('processBtn');
+        const processing = document.getElementById('processing');
+        const errorDiv = document.getElementById('error');
+        const results = document.getElementById('results');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const maxSize = 100 * 1024 * 1024;
+            const validExtensions = ['.stl', '.obj', '.3mf'];
+            
+            Array.from(files).forEach(file => {
+                if (selectedFiles.length >= 20) {
+                    showError('Maximum 20 files allowed');
+                    return;
+                }
+                
+                if (file.size > maxSize) {
+                    showError(`${file.name} exceeds 100 MB limit`);
+                    return;
+                }
+                
+                const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+                if (!validExtensions.includes(fileExt)) {
+                    showError(`${file.name} is not a supported format`);
+                    return;
+                }
+                
+                selectedFiles.push(file);
+            });
+            
+            updateFileList();
+        }
+
+        function updateFileList() {
+            if (selectedFiles.length === 0) {
+                fileList.style.display = 'none';
+                processBtn.disabled = true;
+                processBtn.textContent = 'Select files to continue';
+                return;
+            }
+            
+            fileList.style.display = 'block';
+            fileList.innerHTML = selectedFiles.map((file, index) => `
+                <div class="file-item">
+                    <div>
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="remove-file" onclick="removeFile(${index})">Remove</button>
+                </div>
+            `).join('');
+            
+            processBtn.disabled = false;
+            processBtn.textContent = `Process ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}`;
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        // Format checkboxes
+        const formatCheckboxes = document.querySelectorAll('.format-checkbox');
+        formatCheckboxes.forEach(checkbox => {
+            const input = checkbox.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('click', (e) => {
+                if (e.target !== input) input.checked = !input.checked;
+                updateCheckboxUI();
+                updateFormatCount();
+            });
+            input.addEventListener('change', () => { updateCheckboxUI(); updateFormatCount(); });
+        });
+
+        function updateCheckboxUI() {
+            formatCheckboxes.forEach(checkbox => {
+                const input = checkbox.querySelector('input[type="checkbox"]');
+                checkbox.classList.toggle('selected', input.checked);
+            });
+        }
+
+        function updateFormatCount() {
+            const checkedCount = document.querySelectorAll('input[name="format"]:checked').length;
+            const formatCount = document.getElementById('formatCount');
+            formatCount.textContent = `${checkedCount} format${checkedCount !== 1 ? 's' : ''} selected`;
+            formatCount.style.color = checkedCount === 0 ? '#e53e3e' : '#667eea';
+            if (checkedCount === 0) formatCount.textContent = 'Please select at least one format';
+        }
+
+        // Process files
+        processBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            const selectedFormats = Array.from(document.querySelectorAll('input[name="format"]:checked')).map(cb => cb.value);
+            if (selectedFormats.length === 0) {
+                showError('Please select at least one output format');
+                return;
+            }
+
+            const reduction = document.querySelector('input[name="reduction"]:checked').value;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => formData.append('files[]', file));
+            formData.append('reduction_level', reduction);
+            selectedFormats.forEach(fmt => formData.append('output_formats[]', fmt));
+
+            processBtn.style.display = 'none';
+            processing.style.display = 'block';
+            errorDiv.style.display = 'none';
+            results.style.display = 'none';
+
+            try {
+                const response = await fetch('/decimate_batch', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Processing failed');
+                }
+
+                // Show results
+                results.innerHTML = '<h3>✅ Processing Complete</h3>';
+                data.results.forEach(result => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    
+                    if (result.status === 'success') {
+                        item.innerHTML = `
+                            <div class="result-filename">${result.filename}</div>
+                            <div class="result-stats">
+                                Faces: ${result.original_faces.toLocaleString()} → ${result.decimated_faces.toLocaleString()} 
+                                (${result.reduction_percentage}% reduction)
+                            </div>
+                            <div class="result-stats">
+                                Generated: ${result.output_files.map(f => f.format.toUpperCase()).join(', ')}
+                            </div>
+                        `;
+                    } else {
+                        item.innerHTML = `
+                            <div class="result-filename">${result.filename}</div>
+                            <div class="result-stats" style="color: #c53030;">Error: ${result.message}</div>
+                        `;
+                    }
+                    
+                    results.appendChild(item);
+                });
+                
+                results.style.display = 'block';
+                processing.style.display = 'none';
+                processBtn.style.display = 'block';
+                processBtn.textContent = 'Process More Files';
+                
+                // Clear selected files
+                selectedFiles = [];
+                fileInput.value = '';
+                updateFileList();
+                
+            } catch (error) {
+                processing.style.display = 'none';
+                processBtn.style.display = 'block';
+                showError(error.message);
+            }
+        });
+
+        // File browser
+        async function loadFileBrowser() {
+            try {
+                const response = await fetch('/list_files');
+                const data = await response.json();
+                
+                const grid = document.getElementById('browserGrid');
+                
+                if (data.files.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📂</div>
+                            <div>No files yet. Process some 3D models to see them here!</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = data.files.map(file => `
+                    <div class="browser-item">
+                        <div class="browser-info">
+                            <div class="browser-filename">${file.filename}</div>
+                            <div class="browser-meta">
+                                ${formatFileSize(file.size)} • ${formatDate(file.modified)}
+                            </div>
+                        </div>
+                        <button class="download-btn" onclick="downloadFile('${file.filename}')">Download</button>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                showError('Failed to load files');
+            }
+        }
+
+        function downloadFile(filename) {
+            window.location.href = `/download/${filename}`;
+        }
+
+        document.getElementById('downloadAllBtn').addEventListener('click', () => {
+            window.location.href = '/download_all';
+        });
+
+        // History
+        async function loadHistory() {
+            try {
+                const response = await fetch('/conversions_history');
+                const data = await response.json();
+                
+                const grid = document.getElementById('historyGrid');
+                
+                if (data.conversions.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div>No conversion history yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = data.conversions.map(conv => `
+                    <div class="history-item">
+                        <div class="history-time">${formatDate(conv.timestamp)}</div>
+                        <div class="history-file">${conv.original_filename}</div>
+                        <div class="history-details">
+                            Reduction: ${conv.reduction_level} • 
+                            Formats: ${conv.formats.map(f => f.toUpperCase()).join(', ')} • 
+                            Faces: ${conv.original_faces.toLocaleString()} → ${conv.decimated_faces.toLocaleString()}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                showError('Failed to load history');
+            }
+        }
+
+        // Utilities
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

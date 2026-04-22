@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  decimator:
+    build: .
+    container_name: 3d-decimator
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./outputs:/app/outputs
+    environment:
+      - FLASK_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
